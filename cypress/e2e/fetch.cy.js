@@ -12,8 +12,15 @@
  */
 
 describe('Find the fake gold bar using the UI scale', () => {
-  it('should find the fake gold bar efficiently using the UI', () => {
 
+  //Helpers 
+    
+  const getBalanceText = () => { //Extracting the result of the weighings 
+    return cy.xpath("//div[@class='result']/button").invoke('text');
+  };
+
+
+  it('should find the fake gold bar efficiently using the UI', () => {
 
     cy.visit('http://sdetchallenge.fetch.com/')
 
@@ -26,19 +33,17 @@ describe('Find the fake gold bar using the UI scale', () => {
     cy.get('#right_2').type('5');
     cy.get('#weigh').click();
 
-    cy.xpath("//div[@class='game-info']/ol/li").invoke('text').then((text) => {
-      cy.wrap(text).as('balanceText');
-
-      cy.get('@balanceText').then((balanceText) => {
+    cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 1).then(() => {
+      getBalanceText().then((firstWeighResult) => {
         let remainingBars;
 
-        if (balanceText.includes('>')) {
+        if (firstWeighResult.includes('>')) {
           cy.log('A > B, fake bar is in group B');
           remainingBars = ['coin_3', 'coin_4', 'coin_5'];
-        } else if (balanceText.includes('<')) {
+        } else if (firstWeighResult.includes('<')) {
           cy.log('A < B, fake bar is in group A');
           remainingBars = ['coin_0', 'coin_1', 'coin_2'];
-        } else if (balanceText.includes('=')) {
+        } else if (firstWeighResult.includes('=')) {
           cy.log('A = B, fake bar is in group C');
           remainingBars = ['coin_6', 'coin_7', 'coin_8'];
         } else {
@@ -55,19 +60,17 @@ describe('Find the fake gold bar using the UI scale', () => {
         cy.get('#right_2').clear();
         cy.get('#weigh').click();
 
-        cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 2).last().invoke('text').then((secondText) => {
-          cy.wrap(secondText).as('secondBalanceText');
+        cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 2).then((elements) => {
+          getBalanceText().then((secondWeighResult) => {
 
           let fakeBar;
-
-          cy.get('@secondBalanceText').then((secondBalanceText) => {
-            if (secondBalanceText.includes('>')) {
+            if (secondWeighResult.includes('>')) {
               cy.log(`Fake bar is ${remainingBars[1]}`);
               fakeBar = remainingBars[1];
-            } else if (secondBalanceText.includes('<')) {
+            } else if (secondWeighResult.includes('<')) {
               cy.log(`Fake bar is ${remainingBars[0]}`);
               fakeBar = remainingBars[0];
-            } else if (secondBalanceText.includes('=')) {
+            } else if (secondWeighResult.includes('=')) {
               cy.log(`Fake bar is ${remainingBars[2]}`);
               fakeBar = remainingBars[2];
             } else {
@@ -76,13 +79,26 @@ describe('Find the fake gold bar using the UI scale', () => {
 
             cy.get(`#${fakeBar}`).click();
 
-            cy.on('window:alert', (str) => {
-              expect(str).to.equal('Yay! You find it!');
-            });
-
+            const numberOfWeighings = elements.length;
+            const listOfWeighings = [];
+  
+            cy.wrap(elements).each(($el) => {
+              cy.wrap($el).invoke('text').then((text) => {
+                listOfWeighings.push(text.trim());
+              });
+            }).then(() => { 
+            
+                // Assert on the alert text and log the required data
+                cy.on('window:alert', (str) => {
+                  cy.log(`Alert text: a${str}`);
+                  expect(str).to.equal('Yay! You find it!');
+                  cy.log(`Number of weighings: ${numberOfWeighings}`);
+                  cy.log(`List of weighings: ${listOfWeighings.join(', ')}`);
+                });    
+              });
+            });     
           });
         });
       });
     });
   });
-});
