@@ -24,13 +24,18 @@ describe('Find the fake gold bar using the UI scale', () => {
 
     cy.visit('http://sdetchallenge.fetch.com/')
 
-    // First weighing: Determining which group has the fake bar
-    cy.get('#left_0').type('0');
-    cy.get('#left_1').type('1');
-    cy.get('#left_2').type('2');
-    cy.get('#right_0').type('3');
-    cy.get('#right_1').type('4');
-    cy.get('#right_2').type('5');
+    //First weighing: Determining which group has the fake bar
+    const leftBars = ['0', '1', '2'];
+    const rightBars = ['3', '4', '5'];
+
+    leftBars.forEach((bar, index) => {
+      cy.get(`#left_${index}`).type(bar);
+    });
+
+    rightBars.forEach((bar, index) => {
+      cy.get(`#right_${index}`).type(bar);
+    });
+
     cy.get('#weigh').click();
 
     cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 1).then(() => {
@@ -51,13 +56,18 @@ describe('Find the fake gold bar using the UI scale', () => {
           return;
         }
 
-        // Second weighing: Weigh the first two bars of the remaining group
-        cy.get('#left_0').clear().type(remainingBars[0]);
-        cy.get('#left_1').clear();
-        cy.get('#left_2').clear();
-        cy.get('#right_0').clear().type(remainingBars[1]);
-        cy.get('#right_1').clear();
-        cy.get('#right_2').clear();
+        //Second weighing: Weigh the first two bars of the remaining group
+
+        //Clear fields first
+        for (let i = 0; i < 3; i++) {
+          cy.get(`#left_${i}`).clear();
+          cy.get(`#right_${i}`).clear();
+        }
+
+        //Populate with new values
+        cy.get(`#left_0`).type(remainingBars[0].split('_')[1]);
+        cy.get(`#right_0`).type(remainingBars[1].split('_')[1]);
+
         cy.get('#weigh').click();
 
         cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 2).invoke('text').then((weighingText) => {
@@ -77,18 +87,17 @@ describe('Find the fake gold bar using the UI scale', () => {
               cy.log('Error: Second weighing was not completed.');
             }
 
-             // Attach the alert listener before the click
+             //Attach the alert listener before the click
              cy.window().then((win) => {
               cy.stub(win, 'alert').as('alert');
             });
 
-            // Click the fake bar
             cy.get(`#${fakeBar}`).click();
 
-            // Assert on the alert text and log the required data
+            //Assert on the alert text and log the required data
             cy.get('@alert').should('have.been.calledWith', 'Yay! You find it!');
             
-            // Log the number of weighings and the weighing texts
+            //Log the number of weighings and the weighing texts
             cy.xpath("//div[@class='game-info']/ol/li").invoke('text').then((weighingText) => {
               cy.log(`Number of weighings: 2`);
               cy.log(`List of weighings: ${weighingText}`);
