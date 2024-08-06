@@ -60,7 +60,7 @@ describe('Find the fake gold bar using the UI scale', () => {
         cy.get('#right_2').clear();
         cy.get('#weigh').click();
 
-        cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 2).then((elements) => {
+        cy.xpath("//div[@class='game-info']/ol/li").should('have.length', 2).invoke('text').then((weighingText) => {
           getBalanceText().then((secondWeighResult) => {
 
           let fakeBar;
@@ -77,28 +77,25 @@ describe('Find the fake gold bar using the UI scale', () => {
               cy.log('Error: Second weighing was not completed.');
             }
 
+             // Attach the alert listener before the click
+             cy.window().then((win) => {
+              cy.stub(win, 'alert').as('alert');
+            });
+
+            // Click the fake bar
             cy.get(`#${fakeBar}`).click();
 
-            const numberOfWeighings = elements.length;
-            const listOfWeighings = [];
-  
-            cy.wrap(elements).each(($el) => {
-              cy.wrap($el).invoke('text').then((text) => {
-                listOfWeighings.push(text.trim());
-              });
-            }).then(() => { 
+            // Assert on the alert text and log the required data
+            cy.get('@alert').should('have.been.calledWith', 'Yay! You find it!');
             
-                // Assert on the alert text and log the required data
-                cy.on('window:alert', (str) => {
-                  cy.log(`Alert text: a${str}`);
-                  expect(str).to.equal('Yay! You find it!');
-                  cy.log(`Number of weighings: ${numberOfWeighings}`);
-                  cy.log(`List of weighings: ${listOfWeighings.join(', ')}`);
-                });    
-              });
-            });     
+            // Log the number of weighings and the weighing texts
+            cy.xpath("//div[@class='game-info']/ol/li").invoke('text').then((weighingText) => {
+              cy.log(`Number of weighings: 2`);
+              cy.log(`List of weighings: ${weighingText}`);
+            });
           });
         });
       });
     });
   });
+});
